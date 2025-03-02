@@ -1,0 +1,35 @@
+@echo off
+setlocal enabledelayedexpansion
+
+:: Set this to the volume label of your USB
+set TARGET_USB=YOUR_USB_NAME_THAT_YOU_GET_WHEN_YOU_PLUG-IN
+
+:check_loop
+set USB_FOUND=0
+
+:: Search for the USB drive
+for /f "tokens=1,2,3 delims=," %%a in ('wmic logicaldisk where drivetype^=2 get caption^,volumename /format:csv ^| findstr /v "Node"') do (
+    set DRIVE=%%b
+    set LABEL=%%c
+    
+    :: Remove spaces
+    set LABEL=!LABEL: =!
+    
+    if /i "!LABEL!"=="%TARGET_USB%" (
+        set USB_FOUND=1
+    )
+)
+
+:: If USB not found, show error message
+if %USB_FOUND%==0 (
+    echo USB not present!
+    msg * "USB Security Alert: Authorized USB device '50H0M' not detected!"
+    
+    :: Wait a bit longer between alerts to prevent message spam
+    timeout /t 10 /nobreak > nul
+) else (
+    echo USB present, system secure.
+    timeout /t 5 /nobreak > nul
+)
+
+goto check_loop

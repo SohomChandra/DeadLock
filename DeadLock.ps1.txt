@@ -1,0 +1,27 @@
+# USB Buzzkill Sleep Mode
+# This script checks if a USB with a specific InstanceId is plugged in
+# If removed, it will either put the computer to sleep, shut down, or crash based on user preference
+
+$usbInstance = "USB_INSTANCE_ID"
+
+function Check-USB {
+    $device = Get-PnpDevice | Where-Object { $_.InstanceId -eq $usbInstance }
+    return $device.Status -eq "OK"
+}
+
+while ($true) {
+    if (!(Check-USB)) {
+        Write-Host "USB Removed! Initiating action..."
+        # Uncomment the action you want:
+        Start-Sleep 2
+        shutdown /s /t 0  # Immediate shutdown
+        # shutdown /r /t 0  # Restart the computer
+        # rundll32.exe user32.dll, LockWorkStation  # Lock the computer
+        # Stop-Process -Name explorer -Force  # Crash Windows Explorer
+        # Stop-Computer -Force  # Forced shutdown without warning
+        # Start-Sleep 2  # Sleep mode (Default action)
+        # rundll32.exe powrprof.dll,SetSuspendState 0,1,0  # Hibernate
+        exit
+    }
+    Start-Sleep 2
+}

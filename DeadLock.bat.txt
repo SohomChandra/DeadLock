@@ -1,0 +1,95 @@
+@echo off
+setlocal enabledelayedexpansion
+
+:: Set this to the volume label of your USB
+set TARGET_USB=YOUR_USB_NAME
+
+:: Set the action to take when USB is removed
+:: Uncomment ONE of the following lines to choose your action:
+:: set ACTION=ALERT
+:: set ACTION=LOCK
+:: set ACTION=SLEEP
+:: set ACTION=SHUTDOWN
+:: set ACTION=CRASH
+set ACTION=ALERT
+
+:: Check interval in seconds
+set CHECK_INTERVAL=5
+
+echo USB Security Monitor Started
+echo Monitoring for USB drive labeled: %TARGET_USB%
+echo Action when USB removed: %ACTION%
+echo.
+echo Press Ctrl+C to exit
+
+:check_loop
+set USB_FOUND=0
+
+:: Search for the USB drive
+for /f "tokens=1,2,3 delims=," %%a in ('wmic logicaldisk where drivetype^=2 get caption^,volumename /format:csv ^| findstr /v "Node"') do (
+    set DRIVE=%%b
+    set LABEL=%%c
+    
+    :: Remove spaces
+    set LABEL=!LABEL: =!
+    
+    if /i "!LABEL!"=="%TARGET_USB%" (
+        set USB_FOUND=1
+    )
+)
+
+:: If USB is present
+if %USB_FOUND%==1 (
+    echo [%time%] USB present, system secure.
+    timeout /t %CHECK_INTERVAL% /nobreak > nul
+    goto check_loop
+)
+
+:: If USB not found, take selected action
+echo [%time%] USB REMOVED! Taking action: %ACTION%
+
+:: ALERT action - shows a message box
+if /i "%ACTION%"=="ALERT" (
+    msg * "USB Security Alert: Authorized USB device removed!"
+    timeout /t 10 /nobreak > nul
+    goto check_loop
+)
+
+:: LOCK action - locks the workstation (Windows+L)
+if /i "%ACTION%"=="LOCK" (
+    echo Locking workstation...
+    rundll32.exe user32.dll,LockWorkStation
+    timeout /t %CHECK_INTERVAL% /nobreak > nul
+    goto check_loop
+)
+
+:: SLEEP action - puts computer to sleep
+if /i "%ACTION%"=="SLEEP" (
+    echo Putting computer to sleep...
+    rundll32.exe powrprof.dll,SetSuspendState 0,1,0
+    :: Give time for sleep to take effect
+    timeout /t 30 /nobreak > nul
+    goto check_loop
+)
+
+:: SHUTDOWN action - shuts down computer with 10-second warning
+if /i "%ACTION%"=="SHUTDOWN" (
+    echo Shutting down computer in 10 seconds...
+    shutdown /s /f /t 10 /c "Authorized USB device removed"
+    exit
+)
+
+:: CRASH action - attempts to force a system crash
+if /i "%ACTION%"=="CRASH" (
+    echo Triggering system crash...
+    :: This will create a controlled BSOD by killing critical system processes
+    :: Requires administrative privileges
+    taskkill /f /im svchost.exe
+    :: If the above doesn't cause a crash, try alternative methods
+    exit
+)
+
+:: If action not recognized, default to alert
+msg * "USB Security Alert: Authorized USB device removed!"
+timeout /t 10 /nobreak > nul
+goto check_loop

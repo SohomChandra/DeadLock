@@ -1,0 +1,14 @@
+$usbDevice = "Paste your Instance Id"
+
+while ($true) {
+    $usb = Get-PnpDevice | Where-Object { $_.InstanceId -eq $usbDevice }
+
+    if ($usb.Status -eq "OK") {
+        Write-Host "USB Plugged In... System is Awake" -ForegroundColor Green
+    }
+    else {
+        Write-Host "[ERROR] USB Removed... Self-Destruction Sequence Aborted 🚨" -ForegroundColor Red
+        exit
+    }
+    Start-Sleep -Seconds 1
+}
